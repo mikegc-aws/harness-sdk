@@ -22,7 +22,7 @@ The flip side is that this approach (generating all outputs in a single parallel
 
 In addition, decision models give each decision a high-quality reliability score (i.e. “how sure can I be that this yes/no is correct?”), which is not available through frontier LLM inference APIs. They also make it highly efficient to ask multiple questions about the same prompt. This combination of properties makes them perfect for driving the types of agentic workflows we see many developers building with the Strands Harness SDK, and the recently launched Strands harness. We expect that this class of model is going to lead to a lot of interesting innovation in agentic AI over the next few weeks, months, and years. 
 
-Strands Decider 2B is our first contribution to that innovation. It’s a 2 billion parameter model, suitable for running on a local CPU or GPU, which can return answers to meaningful questions in tens of milliseconds. Its accuracy and calibration matches, or out-performs, the other models we know of in this class. We’ve released `strands-decider-2b` as open source on [GitHub](https://github.com/strands-labs/strands-decider), with the weights on [Hugging Face](https://huggingface.co/StrandsAgents), including all the training data and scripts we used to build the model, making it a great place to start on your own innovation journey. 
+Strands Decider 2B is our first contribution to that innovation. It’s a 2 billion parameter model, suitable for running on a local CPU or GPU, which can return answers to meaningful questions in tens of milliseconds. Its accuracy and calibration is competitive with the other models we know of in this class. We’ve released `strands-decider-2b` as open source on [GitHub](https://github.com/strands-labs/strands-decider), with the weights on [Hugging Face](https://huggingface.co/StrandsAgents), including all the training data and scripts we used to build the model, making it a great place to start on your own innovation journey. 
 
 ## Model Architecture 
 
@@ -36,17 +36,17 @@ As you browse through the repo, you’ll find that this is the second major iter
 
 ## How does it perform? 
 
-For models of this type, we’re interested in three performance targets: accuracy (how well it answers questions), calibration (how trustworthy its confidence scores are), and latency (how quickly it can make decisions). We’ve been measuring the first two together: accuracy on JevBench’s public set, and calibration using the Brier score on the same set. We’ve found that `strands-decider-2b` performs well on accuracy and calibration (second out of the public ~2B models, and first out of the public models with the full training recipe available). As we’ve evolved the architecture our scores are getting better, and we have many ideas for future improvements. We hope the community joins us, in the spirit of Strands labs, in contributing new ideas of your own.
+For models of this type, we’re interested in three performance targets: accuracy (how well it answers questions), calibration (how trustworthy its confidence scores are), and latency (how quickly it can make decisions). We’ve been measuring the first two together: accuracy on JevBench’s public set, and calibration using the Brier score on the same set. We’ve found that `strands-decider-2b` performs well on accuracy and calibration ([3rd of 33 in the 2B class, and 1st of 30 excluding the just-over-2B models](https://benchmarkheaven.com/jev-models)). As we’ve evolved the architecture our scores are getting better, and we have many ideas for future improvements. We hope the community joins us, in the spirit of Strands labs, in contributing new ideas of your own.
 
 ![Accuracy and calibration (Brier score) across training trajectory](./resources/strands-decider/trajectory_brier.png)
 
 _Figure 2: Accuracy and calibration (Brier score) across the training trajectory. As the architecture evolved over successive versions, both metrics improved on JevBench's public set._
 
-On latency, `strands-decider-2b` can make local decisions in a median of around 115ms on widely available hardware. The time taken to decide depends on the task size, approximately linearly increasing as the task size gets larger. The results in the graph here are on a local Nvidia RTX3090, but the performance on my M3 MacBook isn’t much worse, with a median latency for small tasks around 153ms. As with accuracy and calibration, we have a lot of ideas for getting better here, especially in reducing the floor. 
+On latency, `strands-decider-2b` can make local decisions in a median of around 115ms on widely available hardware. The time taken to decide depends on the task size, approximately linearly increasing as the task size gets larger. The results in the graph here are on a local Nvidia RTX3090, but the performance on an M3 MacBook isn’t much worse, with a median latency for small tasks around 153ms. As with accuracy and calibration, we have a lot of ideas for getting better here, especially in reducing the floor. 
 
 ![Decision latency vs. task size in tokens](./resources/strands-decider/latency_vs_tokens_v18.png)
 
-_Figure 3: Decision latency as a function of task size (in tokens), measured on a local Nvidia RTX 3090. Latency increases approximately linearly with task size._
+_Figure 3: Decision latency as a function of task size (in tokens), measured on a local Nvidia RTX 3090 against v18 of the model. Latency increases approximately linearly with task size._
 
 ## Why 2B? 
 
@@ -104,7 +104,7 @@ QUESTIONS = {
 }
 ```
 
-The pattern here is Strands' intervention system. We use the `InterventionHandler` with a `before_tool_call` method, pass it to `Agent(interventions=[...])`, and it runs before any tool executes. What it returns is a typed action: `Proceed`, `Deny`, `Confirm` (stop and ask a person), or `Guide`, which hands the model back its turn with feedback rather than blocking the call outright. This existing handler is a Python class and Strands has no opinion about what goes inside it, so the same shape holds whether you're calling our decision model, a Cedar policy, or another agent. (There are equivalent hooks around the model call and around the whole invocation.) This example is an illustration rather than a recommendation, so the questions, the threshold and the policy were all picked by hand. The point is that our decision model can sit in a path with `InterventionHandler`. 
+The pattern here is Strands' intervention system. We use the `InterventionHandler` with a `before_tool_call` method, pass it to `Agent(interventions=[...])`, and it runs before any tool executes. What it returns is a typed action: `Proceed`, `Deny`, `Confirm` (stop and ask a person), or `Guide`, which hands the model back its turn with feedback rather than blocking the call outright. This existing handler is a Python class and Strands has no opinion about what goes inside it, so the same shape holds whether you're calling our decision model, a Cedar policy, or another agent. (There are equivalent hooks around the model call and around the whole invocation.) This example is an illustration rather than a recommendation, so the questions, the threshold and the policy were all picked by hand. The point is that a decision this cheap can sit in a path where an LLM call never could. 
 
 The Strands team is working on libraries for decision model integration, so watch the repo for updates soon. 
 
